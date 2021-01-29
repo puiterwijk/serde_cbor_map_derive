@@ -3,6 +3,7 @@ name = "serde_int_map_derive"
 version = "0.1.0"
 description = "Deriviation of serde Serialize and Deserialize for maps indexed by integers"
 license = "MIT"
+homepage = "https://github.com/puiterwijk/serde_int_map"
 authors = ["Patrick Uiterwijk <patrick@puiterwijk.org>"]
 edition = "2018"
 
@@ -12,8 +13,7 @@ proc-macro = true
 [dependencies]
 syn = "1.0"
 quote = "1.0"
-
-serde_int_map = { path = "../serde_int_map" }
+serde_int_map = { version = "0.1.0", path = "../serde_int_map" }
 
 [features]
 print_tokenstreams = []
