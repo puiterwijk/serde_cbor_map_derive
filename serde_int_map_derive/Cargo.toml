@@ -1,0 +1,17 @@
+[package]
+name = "serde_int_map_derive"
+version = "0.1.0"
+authors = ["Patrick Uiterwijk <patrick@puiterwijk.org>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0"
+quote = "1.0"
+
+serde_int_map = { path = "../serde_int_map" }
+
+[features]
+print_tokenstreams = []
