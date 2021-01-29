@@ -1,5 +1,4 @@
-pub trait UnknownKeyHandler
-{
+pub trait UnknownKeyHandler {
     type ValueType;
 
     fn new() -> Self;

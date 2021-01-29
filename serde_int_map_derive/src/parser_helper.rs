@@ -19,7 +19,10 @@ pub(crate) fn get_field_matcher_and_catchall_type(field: &Field) -> (u32, Option
         ));
     }
     if int_map_id_attrs.len() > 1 {
-        panic!(format!("Multiple int_map_id or int_map_unknown attributes found on field {}", field.ident.as_ref().unwrap()));
+        panic!(format!(
+            "Multiple int_map_id or int_map_unknown attributes found on field {}",
+            field.ident.as_ref().unwrap()
+        ));
     }
     let int_map_id_attr = int_map_id_attrs.first().unwrap();
 

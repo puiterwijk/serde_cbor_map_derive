@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    parse_macro_input, Data, DeriveInput, Fields, GenericArgument, Path, PathArguments,
-    Type, TypePath,
+    parse_macro_input, Data, DeriveInput, Fields, GenericArgument, Path, PathArguments, Type,
+    TypePath,
 };
 
 use crate::{parser_helper, CatchallType};

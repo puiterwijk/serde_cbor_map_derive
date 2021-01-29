@@ -1,10 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{
-    parse_macro_input, Data, DeriveInput, Fields,
-};
+use syn::{parse_macro_input, Data, DeriveInput, Fields};
 
-use crate::{CatchallType, parser_helper};
+use crate::{parser_helper, CatchallType};
 
 pub(crate) fn impl_derive_serialize_int_map(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -23,7 +21,8 @@ pub(crate) fn impl_derive_serialize_int_map(input: TokenStream) -> TokenStream {
         .map(|field| {
             let ident = field.ident.as_ref().expect("No identifier");
 
-            let (attr_key, catchall_type) = parser_helper::get_field_matcher_and_catchall_type(field);
+            let (attr_key, catchall_type) =
+                parser_helper::get_field_matcher_and_catchall_type(field);
 
             let attr_counter = if catchall_type.is_some() {
                 quote! { + self.#ident.num_items() }
