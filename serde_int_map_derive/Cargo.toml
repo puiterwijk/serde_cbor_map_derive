@@ -1,6 +1,8 @@
 [package]
 name = "serde_int_map_derive"
 version = "0.1.0"
+description = "Deriviation of serde Serialize and Deserialize for maps indexed by integers"
+license = "MIT"
 authors = ["Patrick Uiterwijk <patrick@puiterwijk.org>"]
 edition = "2018"
 
