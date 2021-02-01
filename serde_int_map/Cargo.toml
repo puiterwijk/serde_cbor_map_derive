@@ -1,6 +1,6 @@
 [package]
 name = "serde_int_map"
-version = "0.1.1"
+version = "0.1.2"
 description = "General traits for serde_int_map_derive"
 license = "MIT"
 homepage = "https://github.com/puiterwijk/serde_int_map"
