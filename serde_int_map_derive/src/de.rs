@@ -41,7 +41,6 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
                     if #ident.is_some() {
                         return Err(serde::de::Error::duplicate_field(stringify!(#ident)));
                     }
-                    println!("Setting value for {}", stringify!(#ident));
                     #ident = Some(map.next_value()?);
                 }
             }
@@ -95,8 +94,6 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
             where
                 D: serde::Deserializer<'de>,
             {
-                println!("Deserializing start for #ident");
-
                 use serde_int_map::UnknownKeyHandler;
 
                 struct OurVisitor;
@@ -112,18 +109,14 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
                     where
                         V: serde::de::MapAccess<'de>,
                     {
-                        println!("Extracting attributes for {}", stringify!(#ident));
-
                         #(#attr_placeholders)*
 
-                        println!("Matching attributes for {}", stringify!(#ident));
                         while let Some(_int_map_key) = map.next_key::<u32>()? {
                             match _int_map_key {
                                 #(#attr_matchers)*
                             }
                         }
 
-                        println!("Synthesizing {}", stringify!(#ident));
                         Ok(#ident {
                             #(#attr_installers)*
                         })
