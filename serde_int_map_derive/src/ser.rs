@@ -20,6 +20,7 @@ pub(crate) fn impl_derive_serialize_int_map(input: TokenStream) -> TokenStream {
         .iter()
         .map(|field| {
             let ident = field.ident.as_ref().expect("No identifier");
+            let (_, is_optional) = parser_helper::get_field_type_and_optionality(field);
 
             let (attr_key, catchall_type) =
                 parser_helper::get_field_matcher_and_catchall_type(field);
@@ -33,8 +34,16 @@ pub(crate) fn impl_derive_serialize_int_map(input: TokenStream) -> TokenStream {
 
             let attr_serializer = match catchall_type {
                 None => {
-                    quote! {
-                        map.serialize_entry(&#attr_key, &self.#ident)?;
+                    if is_optional {
+                        quote! {
+                            if let Some(value) = &self.#ident {
+                                map.serialize_entry(&#attr_key, &value)?;
+                            }
+                        }
+                    } else {
+                        quote! {
+                            map.serialize_entry(&#attr_key, &self.#ident)?;
+                        }
                     }
                 }
                 Some(CatchallType::Fields) => {

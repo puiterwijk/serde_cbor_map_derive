@@ -1,6 +1,6 @@
 [package]
 name = "serde_int_map"
-version = "0.1.0"
+version = "0.1.1"
 description = "General traits for serde_int_map_derive"
 license = "MIT"
 homepage = "https://github.com/puiterwijk/serde_int_map"
@@ -8,3 +8,6 @@ authors = ["Patrick Uiterwijk <patrick@puiterwijk.org>"]
 edition = "2018"
 
 [lib]
+
+[dependencies]
+serde_int_map_derive = "0.1.1"

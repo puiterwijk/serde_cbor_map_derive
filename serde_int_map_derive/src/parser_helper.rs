@@ -1,5 +1,5 @@
 use proc_macro::{TokenStream, TokenTree};
-use syn::{Attribute, Field};
+use syn::{Attribute, Field, GenericArgument, Path, PathArguments, Type, TypePath};
 
 use crate::CatchallType;
 
@@ -76,4 +76,35 @@ pub(crate) fn get_field_matcher_and_catchall_type(field: &Field) -> (u32, Option
     };
 
     (matcher, catchall_type)
+}
+
+pub(crate) fn get_field_type_and_optionality(field: &Field) -> (Type, bool) {
+    match &field.ty {
+        Type::Path(TypePath {
+            qself: None,
+            path:
+                Path {
+                    leading_colon: _,
+                    segments: seg,
+                },
+        }) => {
+            let last_seg = &seg.last().expect("No last segment");
+            match &last_seg.ident.to_string()[..] {
+                "Option" => match &last_seg.arguments {
+                    PathArguments::AngleBracketed(args) => {
+                        match &args.args.first().expect("No argument to Option") {
+                            GenericArgument::Type(ty) => match ty {
+                                Type::Path(tp) => (Type::Path(tp.clone()), true),
+                                _ => panic!("Non-path Option type"),
+                            },
+                            _ => panic!("Non-type Option argument"),
+                        }
+                    }
+                    _ => panic!("Non-bracketed option"),
+                },
+                _ => (field.ty.clone(), false),
+            }
+        }
+        _ => panic!("Unsupported type encontered"),
+    }
 }

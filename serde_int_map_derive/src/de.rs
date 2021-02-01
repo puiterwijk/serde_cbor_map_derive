@@ -1,9 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{
-    parse_macro_input, Data, DeriveInput, Fields, GenericArgument, Path, PathArguments, Type,
-    TypePath,
-};
+use syn::{parse_macro_input, Data, DeriveInput, Fields};
 
 use crate::{parser_helper, CatchallType};
 
@@ -22,34 +19,7 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
     // Build the components based on attributes
     let quotes_list = fields.iter().map(|field| {
         let ident = field.ident.as_ref().expect("No identifier");
-        let (non_option_ty, is_optional) = match &field.ty {
-            Type::Path(TypePath {
-                qself: None,
-                path:
-                    Path {
-                        leading_colon: _,
-                        segments: seg,
-                    },
-            }) => {
-                let last_seg = &seg.last().expect("No last segment");
-                match &last_seg.ident.to_string()[..] {
-                    "Option" => match &last_seg.arguments {
-                        PathArguments::AngleBracketed(args) => {
-                            match &args.args.first().expect("No argument to Option") {
-                                GenericArgument::Type(ty) => match ty {
-                                    Type::Path(tp) => (Type::Path(tp.clone()), true),
-                                    _ => panic!("Non-path Option type"),
-                                },
-                                _ => panic!("Non-type Option argument"),
-                            }
-                        }
-                        _ => panic!("Non-bracketed option"),
-                    },
-                    _ => (field.ty.clone(), false),
-                }
-            }
-            _ => panic!("Unsupported type encontered"),
-        };
+        let (non_option_ty, is_optional) = parser_helper::get_field_type_and_optionality(field);
 
         let (matcher, catchall_type) = parser_helper::get_field_matcher_and_catchall_type(field);
 
@@ -71,6 +41,7 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
                     if #ident.is_some() {
                         return Err(serde::de::Error::duplicate_field(stringify!(#ident)));
                     }
+                    println!("Setting value for {}", stringify!(#ident));
                     #ident = Some(map.next_value()?);
                 }
             }
@@ -124,6 +95,8 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
             where
                 D: serde::Deserializer<'de>,
             {
+                println!("Deserializing start for #ident");
+
                 use serde_int_map::UnknownKeyHandler;
 
                 struct OurVisitor;
@@ -139,14 +112,18 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
                     where
                         V: serde::de::MapAccess<'de>,
                     {
+                        println!("Extracting attributes for {}", stringify!(#ident));
+
                         #(#attr_placeholders)*
 
+                        println!("Matching attributes for {}", stringify!(#ident));
                         while let Some(_int_map_key) = map.next_key::<u32>()? {
                             match _int_map_key {
                                 #(#attr_matchers)*
                             }
                         }
 
+                        println!("Synthesizing {}", stringify!(#ident));
                         Ok(#ident {
                             #(#attr_installers)*
                         })
