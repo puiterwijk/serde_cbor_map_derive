@@ -1,2 +1,2 @@
 [workspace]
-members = ["serde_int_map", "serde_int_map_derive"]
+members = ["serde_int_map", "serde_int_map_derive", "serde_int_map_traits"]
