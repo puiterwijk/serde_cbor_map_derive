@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Fields};
 
-use crate::{parser_helper, CatchallType};
+use crate::{parser_helper, FieldType};
 
 pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -21,48 +21,62 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
         let ident = field.ident.as_ref().expect("No identifier");
         let (non_option_ty, is_optional) = parser_helper::get_field_type_and_optionality(field);
 
-        let (matcher, catchall_type) = parser_helper::get_field_matcher_and_catchall_type(field);
-
-        let attr_placeholder = if catchall_type.is_some() {
-            quote! {
-                let mut #ident: #non_option_ty = #non_option_ty::new();
-            }
-        } else {
-            quote! {
-                let mut #ident: core::option::Option<#non_option_ty> = None;
-            }
+        let (matcher, field_type) = match parser_helper::get_field_matcher_and_catchall_type(field) {
+            Some(val) => val,
+            // Ignore this field entirely
+            None => return (
+                quote!{},
+                quote!{},
+                quote!{},
+                quote!{},
+            ),
         };
 
-        let attr_matcher = if catchall_type.is_some() {
-            quote! {}
-        } else {
+        let attr_placeholder = match field_type {
+            FieldType::Normal => quote! {
+                let mut #ident: core::option::Option<#non_option_ty> = None;
+            },
+            FieldType::WildCardFields | FieldType::WildCardUnknown =>
             quote! {
+                let mut #ident: #non_option_ty = #non_option_ty::new();
+            },
+            FieldType::Phantom => quote!{}
+        };
+
+        let attr_matcher = match field_type {
+            FieldType::Normal => quote! {
                 #matcher => {
                     if #ident.is_some() {
                         return Err(serde::de::Error::duplicate_field(stringify!(#ident)));
                     }
                     #ident = Some(map.next_value()?);
                 }
-            }
+            },
+            FieldType::WildCardFields | FieldType::WildCardUnknown | FieldType::Phantom => quote!{},
         };
 
-        let catchall_attr_matcher = match catchall_type {
-            None => quote! {},
-            Some(CatchallType::Fields) => {
+        let catchall_attr_matcher = match field_type {
+            FieldType::Normal | FieldType::Phantom => quote! {},
+            FieldType::WildCardFields => {
                 panic!("TODO: CatchallType::Fields implementation");
             }
-            Some(CatchallType::Unknown) =>
+            FieldType::WildCardUnknown => {
                 quote! {
                     if #ident.handles_key(catchall) {
                         #ident.fill_value(catchall, map.next_value()?);
                         continue;
                     }
                 }
-            };
+            }
+        };
 
-        let attr_installer = if is_optional || catchall_type.is_some() {
+        let attr_installer = if is_optional || field_type.is_wildcard() {
             quote! {
                 #ident,
+            }
+        } else if field_type.is_phantom() {
+            quote! {
+                #ident: std::marker::PhantomData,
             }
         } else {
             quote! {

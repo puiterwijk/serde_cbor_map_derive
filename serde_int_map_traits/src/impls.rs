@@ -3,7 +3,7 @@ use super::UnknownKeyHandler;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 
-impl<VT> UnknownKeyHandler for HashMap<u32, VT> {
+impl<VT> UnknownKeyHandler for HashMap<i64, VT> {
     type ValueType = VT;
 
     fn new() -> Self {
@@ -14,15 +14,15 @@ impl<VT> UnknownKeyHandler for HashMap<u32, VT> {
         self.len()
     }
 
-    fn iter(&self) -> Iter<u32, Self::ValueType> {
+    fn iter(&self) -> Iter<i64, Self::ValueType> {
         self.iter()
     }
 
-    fn handles_key(&self, _key: u32) -> bool {
+    fn handles_key(&self, _key: i64) -> bool {
         true
     }
 
-    fn fill_value(&mut self, key: u32, value: Self::ValueType) {
+    fn fill_value(&mut self, key: i64, value: Self::ValueType) {
         self.insert(key, value);
     }
 }
