@@ -7,6 +7,7 @@ use crate::{parser_helper, FieldType};
 pub(crate) fn impl_derive_serialize_int_map(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let ident = input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let fields = match input.data {
         Data::Struct(data) => match data.fields {
@@ -70,10 +71,10 @@ pub(crate) fn impl_derive_serialize_int_map(input: TokenStream) -> TokenStream {
     let (attr_counters, attr_serializers) = crate::utils::list_to_tuple_2(quotes_list);
 
     let res = TokenStream::from(quote! {
-        impl serde::Serialize for #ident {
-            fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
+        impl #impl_generics serde::Serialize for #ident #ty_generics #where_clause {
+            fn serialize<SERIALIZER_TYPE>(&self, serializer: SERIALIZER_TYPE) -> core::result::Result<SERIALIZER_TYPE::Ok, SERIALIZER_TYPE::Error>
             where
-                S: serde::Serializer,
+                SERIALIZER_TYPE: serde::Serializer,
             {
                 use serde::ser::SerializeMap;
                 use serde_int_map::UnknownKeyHandler;

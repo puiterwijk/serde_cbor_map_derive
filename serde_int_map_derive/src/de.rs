@@ -1,12 +1,56 @@
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields};
+use proc_macro2::Span;
+use quote::{format_ident, quote};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, GenericParam, Lifetime, LifetimeDef};
 
 use crate::{parser_helper, FieldType};
 
 pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
+    let mut input_with_de = input.clone();
+
+    let (impl_generics_with_de, _, _) = {
+        let de = Lifetime::new("'deserializer_life", Span::call_site());
+        let de = LifetimeDef::new(de);
+        input_with_de.generics.params.push(de.into());
+        input_with_de.generics.split_for_impl()
+    };
     let ident = input.ident;
+    let (_, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let generic_names: Vec<_> = input
+        .generics
+        .params
+        .iter()
+        .map(|param| match param {
+            GenericParam::Type(type_param) => {
+                if type_param.colon_token.is_some() {
+                    panic!("Unsupported type param: {:?}", type_param);
+                }
+                type_param.ident.clone()
+            }
+            other => panic!("Unsupported generic: {:?}", other),
+        })
+        .collect();
+
+    let visitor_phantom_names: Vec<_> = generic_names
+        .iter()
+        .map(|name| {
+            let phantom_ident = format_ident!("_phantom_{}", name);
+            quote! {
+                #phantom_ident: std::marker::PhantomData<#name>,
+            }
+        })
+        .collect();
+    let visitor_phantom_installers: Vec<_> = generic_names
+        .iter()
+        .map(|name| {
+            let phantom_ident = format_ident!("_phantom_{}", name);
+            quote! {
+                    #phantom_ident: std::marker::PhantomData,
+            }
+        })
+        .collect();
 
     let fields = match input.data {
         Data::Struct(data) => match data.fields {
@@ -103,29 +147,32 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
     let attr_matchers = attr_matchers;
 
     let res = TokenStream::from(quote! {
-        impl<'de> serde::Deserialize<'de> for #ident {
-            fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
+        impl #impl_generics_with_de serde::Deserialize<'deserializer_life> for #ident #ty_generics #where_clause {
+            fn deserialize<DESERIALIZER_TYPE>(deserializer: DESERIALIZER_TYPE) -> core::result::Result<#ident #ty_generics, DESERIALIZER_TYPE::Error>
             where
-                D: serde::Deserializer<'de>,
+                DESERIALIZER_TYPE: serde::Deserializer<'deserializer_life>,
+                S: PayloadState,
             {
                 use serde_int_map::UnknownKeyHandler;
 
-                struct OurVisitor;
+                struct OurVisitor #ty_generics {
+                    #(#visitor_phantom_names)*
+                };
 
-                impl<'de> serde::de::Visitor<'de> for OurVisitor {
-                    type Value = #ident;
+                impl #impl_generics_with_de serde::de::Visitor<'deserializer_life> for OurVisitor #ty_generics #where_clause {
+                    type Value = #ident #ty_generics;
 
                     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                         write!(formatter, "a map")
                     }
 
-                    fn visit_map<V>(self, mut map: V) -> core::result::Result<#ident, V::Error>
+                    fn visit_map<V>(self, mut map: V) -> core::result::Result<#ident #ty_generics, V::Error>
                     where
-                        V: serde::de::MapAccess<'de>,
+                        V: serde::de::MapAccess<'deserializer_life>,
                     {
                         #(#attr_placeholders)*
 
-                        while let Some(_int_map_key) = map.next_key::<u32>()? {
+                        while let Some(_int_map_key) = map.next_key::<i64>()? {
                             match _int_map_key {
                                 #(#attr_matchers)*
                             }
@@ -137,7 +184,9 @@ pub(crate) fn impl_derive_deserialize_int_map(input: TokenStream) -> TokenStream
                     }
                 }
 
-                deserializer.deserialize_map(OurVisitor)
+                deserializer.deserialize_map(OurVisitor {
+                    #(#visitor_phantom_installers)*
+                })
             }
         }
     });

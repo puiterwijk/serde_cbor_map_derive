@@ -1,6 +1,6 @@
 [package]
 name = "serde_int_map"
-version = "0.2.0"
+version = "0.3.0"
 description = "Crate to derive serde traits for integer-indexed structs"
 license = "MIT"
 homepage = "https://github.com/puiterwijk/serde_int_map"
@@ -10,5 +10,5 @@ edition = "2018"
 [lib]
 
 [dependencies]
-serde_int_map_derive = { path = "../serde_int_map_derive", version = "0.2" }
-serde_int_map_traits = { path = "../serde_int_map_traits", version = "0.2" }
+serde_int_map_derive = { path = "../serde_int_map_derive", version = "0.3" }
+serde_int_map_traits = { path = "../serde_int_map_traits", version = "0.3" }
